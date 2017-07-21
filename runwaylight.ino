@@ -1,8 +1,7 @@
 //////////////////////////////////////////////////////////////////
  //
- // Programmierung einer Designeruhr als Wandschmuck
- // Grundlage ist ein LED-Streifen (WS2812B) oder ein Ring mit
- // 60 LEDs
+ // Programmierung eines Lauflichts für eine 400m Rundbahn
+ // 
  //
  //////////////////////////////////////////////////////////////////
 
@@ -14,7 +13,7 @@
 #endif
 
 
-// Anschluss der LEDs an Digitalausgang 6:
+// Anschluss der LEDs an Digitalausgang 2:
 #define PIN 2
 
 #define LEDS 104 //Anzahl LED; im Strang
@@ -23,12 +22,8 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(LEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 
-// Position des Stundenzeigers:
-uint8_t currentHour;
-// Position des Minutenzeigers:
-uint8_t currentMin;
 
-// Position des Sekundenzeigers:
+//1.Ghost initialisieren
 float ghostOnePos;
 float ghostOneSplit;
 float ghostOneTime;
@@ -36,6 +31,7 @@ float ghostOneDist;
 float ghostOneZiel;
 float ghostOneSec;
 
+//2.Ghost initialisieren
 float ghostTwoPos;
 float ghostTwoSplit;
 float ghostTwoTime;
@@ -43,7 +39,7 @@ float ghostTwoDist;
 float ghostTwoZiel;
 float ghostTwoSec;
 
-
+//3.Ghost initialisieren
 float ghostThreePos;
 float ghostThreeSplit;
 float ghostThreeTime;
@@ -51,17 +47,16 @@ float ghostThreeDist;
 float ghostThreeZiel;
 float ghostThreeSec;
 
-// Initialisierung:
+
+
 void setup() {
   Serial.begin(9600);
   strip.begin(); // Streifen initialisieren
   strip.show();  // Alle Pixel erst einmal aus
 
-  // Initiale Uhrzeit manuell einstellen
-  // Initialer Zustand der Uhrenanzeige bei Programmstart:
-  currentHour =  52; // Position wird modulo 12 berechnet
-  currentMin  =  52;
-  
+
+// Startparameter der Ghosts setzen
+
   ghostOnePos  =  0;
   ghostOneTime = 10;
   ghostOneDist=1200;
@@ -84,6 +79,7 @@ ghostOneSec=ghostOnePos;
 ghostTwoSec=ghostTwoPos;
 ghostThreeSec=ghostThreePos;
 }
+
 //////////////////////////////////////////////////////////////////
 //
 // Methode:   colorPicker(Pixelnummer)
@@ -92,16 +88,15 @@ ghostThreeSec=ghostThreePos;
 //
 //////////////////////////////////////////////////////////////////
 uint32_t colorPicker(uint8_t pos) {
-    const uint32_t hourColor = 0xD00000; // Stundenzeiger  mit Rot
-    const uint32_t redColor = 0xFF0000; //  Rot
-    const uint32_t whiteColor = 0xFFFFFF; //  weiß
-    const uint32_t greenColor = 0x00FF00; //  Grün
-    const uint32_t blueColor = 0x0000FF; //  blau
-    const uint32_t yellowColor = 0xFFFF00; //  gelb
-    const uint32_t minColor  = 0x00D000; // Minutenzeiger  mit Grün
-    const uint32_t secColor  = 0x0000D0; // Sekundenzeiger mit Blau
-    uint32_t result = 0x050505;
-    // Bei Position in N, O, S, W Extra-Farbanteil für R, G, B hinzufügen:
+  //Farben definieren für einfacheren zugriff
+    const uint32_t redColor = 0xFF0000;           //  rot
+    const uint32_t whiteColor = 0xFFFFFF;         //  weiß
+    const uint32_t greenColor = 0x00FF00;         //  grün
+    const uint32_t blueColor = 0x0000FF;          //  blau
+    const uint32_t yellowColor = 0xFFFF00;        //  gelb
+    uint32_t result = 0x050505;                   //Hintergrundfarbe des Strangs
+    
+    // Markierung aller 50m setzen
     if (pos == LEDS*50/400+2)       result = 0x0000ff; 
     if (pos == LEDS*100/400+2)       result = 0x0000ff; 
     if (pos == LEDS*150/400+2)       result = 0x0000ff; 
@@ -118,37 +113,34 @@ uint32_t colorPicker(uint8_t pos) {
     if (pos == LEDS*300/400+3)       result = 0x0000ff; 
     if (pos == LEDS*350/400+3)       result = 0x0000ff; 
     if (pos == 2)       result = 0x0000ff; 
-    // Ist Minutenzeiger  auf dieser Position,
-    // Grünanteil hinzufügen:
 
+    //Ghost 1 Zeichnen insgesamt 5 Pixel
   if (ghostOneZiel > 0){
     if (pos ==  ghostOnePos)  result = greenColor;  
     if (pos ==  ghostOnePos+1)  result = blueColor;  
     if (pos ==  ghostOnePos+2)  result = blueColor;  
     if (pos ==  ghostOnePos+3)  result = blueColor;  
     if (pos ==  ghostOnePos+4)  result = redColor;  
-    // Ist Stundenzeiger auf dieser Position,
-    // Rotanteil hinzufügen:
     
     }
-      
+
+      //Ghost 2 Zeichnen
   if (ghostTwoZiel > 0){
     if (pos ==  ghostTwoPos)  result = greenColor;  
     if (pos ==  ghostTwoPos+1)  result = whiteColor;  
     if (pos ==  ghostTwoPos+2)  result = whiteColor;  
     if (pos ==  ghostTwoPos+3)  result = whiteColor;  
     if (pos ==  ghostTwoPos+4)  result = redColor;  
-    // Ist Sekundenzeiger auf dieser Position,
-    // Blauanteil hinzufügen:
+    
   }
+
+  //Ghost 3 Zeichnen
     if (ghostThreeZiel > 0){
     if (pos ==  ghostThreePos)  result = greenColor;  
     if (pos ==  ghostThreePos+1)  result = yellowColor;  
     if (pos ==  ghostThreePos+2)  result = yellowColor;  
     if (pos ==  ghostThreePos+3)  result = yellowColor;  
     if (pos ==  ghostThreePos+4)  result = redColor;  
-    // Ist Stundenzeiger auf dieser Position,
-    // Rotanteil hinzufügen:
     
     }
     
@@ -159,7 +151,7 @@ uint32_t colorPicker(uint8_t pos) {
 //////////////////////////////////////////////////////////////////
 //
 // Methode:   displayClock()
-// Zweck:     Für alle 60 Pixel Farbe errechnen,
+// Zweck:     Für alle Pixel Farbe errechnen,
 //            bei der LED entsprechend setzen,
 //            und darstellen
 //
@@ -179,7 +171,8 @@ void displayClock() {
 //
 //////////////////////////////////////////////////////////////////
 void incrementTimeBySecond() {
-  
+
+ //distanz Ghost runterrechnen und nach Runde wieder von vorn beginnen
  ghostOneSec= ghostOneSec-ghostOneSplit;
  ghostOnePos = round(ghostOneSec);
 
@@ -190,24 +183,24 @@ void incrementTimeBySecond() {
  ghostThreePos = round(ghostThreeSec);
  
 
-  if (ghostOnePos < 1) { // Minutengrenze erreicht?
-    ghostOneSec = LEDS+1;       // Ja => Sekundenzeiger auf 0
-    //currentMin--;         //       und Minuten erhöhen
+  if (ghostOnePos < 1) { // am Ende des Strangs wieder bei beginnen
+    ghostOneSec = LEDS+1;       // Ja => Start am letzten Pixel
+    
   }
-  if (ghostTwoPos < 1) { // Stundengrenze erreicht?
-    ghostTwoSec = LEDS+1;       // Ja => Minutenzeiger auf 0
-    //currentHour--;        //       und Stunden erhöhen
+  if (ghostTwoPos < 1) { // am Ende des Strangs wieder bei beginnen
+    ghostTwoSec = LEDS+1;       // Ja => Start am letzten Pixel
+    
   }
-    if (ghostThreePos < 1) { // Stundengrenze erreicht?
-    ghostThreeSec = LEDS+1;       // Ja => Minutenzeiger auf 0
-    //currentHour--;        //       und Stunden erhöhen
+    if (ghostThreePos < 1) { // am Ende des Strangs wieder bei beginnen
+    ghostThreeSec = LEDS+1;        // Ja => Start am letzten Pixel
+    
   }
 
 }
 //////////////////////////////////////////////////////////////////
 //
 // Methode:   loop()
-// Zweck:     Uhr implementieren
+// Zweck:     Sekunden zählen
 //
 //////////////////////////////////////////////////////////////////
 void loop() {
